@@ -1,3 +1,6 @@
 build/
 liblogger.so
 logger_app
+test_runner
+test_logger.log
+test_logger2.log

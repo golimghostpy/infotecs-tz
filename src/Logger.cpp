@@ -5,9 +5,14 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <sstream>
 
-using namespace std;
+using std::string;
+using std::lock_guard;
+using std::mutex;
+using std::cerr;
+using std::endl;
+using std::ofstream;
+using std::ios;
 
 string log_level_to_string(LogLevel level) {
     switch (level) {
@@ -22,7 +27,7 @@ LogLevel log_level_from_string(const string& s) {
     if (s == "DEBUG") return LogLevel::DEBUG;
     if (s == "INFO") return LogLevel::INFO;
     if (s == "ERROR") return LogLevel::ERROR;
-    return LogLevel::INFO;
+    return LogLevel::UNKNOWN;
 }
 
 Logger::Logger() = default;
@@ -52,9 +57,9 @@ LogLevel Logger::get_level() const {
 void Logger::log(const string& message, LogLevel level) {
     lock_guard<mutex> lock(mutex_);
 
-    // проверка инициализации логгера
+    // проверка инициалзиации логгера
     if (!initialized_) {
-        cerr << "[Logger] Not initialized" << endl;
+        cerr << "[Логгер] Не инициализирован" << endl;
         return;
     }
 
@@ -64,27 +69,23 @@ void Logger::log(const string& message, LogLevel level) {
     }
 
     // получение текущего времени в формате yyyy-mm-dd hh:mm:ss
-    auto now = chrono::system_clock::now();
-    auto time_t = chrono::system_clock::to_time_t(now);
-    auto tm = *localtime(&time_t);
+    auto now = std::chrono::system_clock::now();
+    auto time_t = std::chrono::system_clock::to_time_t(now);
+    auto tm = *std::localtime(&time_t);
 
     // формирование строки: [время] [уровень] сообщение
-    ostringstream oss;
-    oss << "[" << put_time(&tm, "%Y-%m-%d %H:%M:%S") << "] "
-        << "[" << log_level_to_string(level) << "] "
-        << message;
-
-    // открытие файла в режиме дозаписи
     ofstream out(file_path_, ios::app);
     if (!out) {
-        cerr << "[Logger] Failed to open log file: " << file_path_ << endl;
+        cerr << "[Логгер] Не удалось открыть файл: " << file_path_ << endl;
         return;
     }
 
-    out << oss.str() << endl;
+    out << "[" << std::put_time(&tm, "%Y-%m-%d %H:%M:%S") << "] "
+        << "[" << log_level_to_string(level) << "] "
+        << message << endl;
 
     // проверка на ошибку записывания
     if (!out) {
-        cerr << "[Logger] Failed to write to log file" << endl;
+        cerr << "[Логгер] Зпись в файл не удалась" << endl;
     }
 }
